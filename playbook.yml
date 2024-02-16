@@ -13,6 +13,18 @@
         state: present
         update_cache: yes
 
+    - name: copy pub key
+      become: yes
+      ansible.builtin.copy:
+        dest: ~/.ssh/
+        src: ssh_keys/id_rsa.pub
+
+    - name: copy priv key
+      become: yes
+      ansible.builtin.copy:
+        dest: ~/.ssh/
+        src: ssh_keys/id_rsa
+
     - name: clone repo
       become: yes
       command: git clone https://github.com/iphilka/stud-template /home/ansible-worker/www

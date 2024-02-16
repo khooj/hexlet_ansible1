@@ -1,5 +1,9 @@
 ---
 - hosts: vm
+  vars:
+    worker_root: /home/ansible-worker/www
+    nginx_avail: /etc/nginx/sites-available
+    nginx_enabled: /etc/nginx/sites-enabled
   tasks:
     - name: create user
       become: yes
@@ -13,21 +17,17 @@
         state: present
         update_cache: yes
 
-    - name: copy pub key
+    - name: copy keys
       become: yes
       ansible.builtin.copy:
         dest: ~/.ssh/
-        src: ssh_keys/id_rsa.pub
-
-    - name: copy priv key
-      become: yes
-      ansible.builtin.copy:
-        dest: ~/.ssh/
-        src: ssh_keys/id_rsa
+        src: ssh_keys/
 
     - name: clone repo
       become: yes
-      command: git clone https://github.com/iphilka/stud-template /home/ansible-worker/www
+      ansible.builtin.git:
+        repo: https://github.com/iphilka/stud-template
+        dest: "{{worker_root}}"
 
     - name: install nginx
       become: yes
@@ -38,7 +38,7 @@
     - name: copy index.html
       become: yes
       ansible.builtin.copy:
-        dest: /home/ansible-worker/www/index.html
+        dest: "{{worker_root}}/index.html"
         src: index.html
         owner: ansible-worker
         group: ansible-worker
@@ -46,7 +46,7 @@
     - name: copy nginx conf
       become: yes
       ansible.builtin.copy:
-        dest: /etc/nginx/sites-available/ansible.iphilka.ru.conf
+        dest: "{{nginx_avail}}/ansible.iphilka.ru.conf"
         src: ansible.iphilka.ru.conf
         owner: root
         group: root
@@ -55,14 +55,14 @@
     - name: enable site
       become: yes
       file:
-        src: /etc/nginx/sites-available/ansible.iphilka.ru.conf
-        dest: /etc/nginx/sites-enabled/ansible.iphilka.ru.conf
+        src: "{{nginx_avail}}/ansible.iphilka.ru.conf"
+        dest: "{{nginx_enabled}}/ansible.iphilka.ru.conf"
         state: link
 
     - name: disable default site
       become: yes
       file:
-        path: /etc/nginx/sites-enabled/default
+        path: "{{nginx_enabled}}/default"
         state: absent
 
     - name: restart nginx

@@ -1,0 +1,61 @@
+---
+- hosts: vm
+  tasks:
+    - name: create user
+      become: yes
+      ansible.builtin.user:
+        name: ansible-worker
+
+    - name: install git
+      become: yes
+      ansible.builtin.apt:
+        name: git
+        state: present
+        update_cache: yes
+
+    - name: clone repo
+      become: yes
+      command: git clone https://github.com/iphilka/stud-template /home/ansible-worker/www
+
+    - name: install nginx
+      become: yes
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: copy index.html
+      become: yes
+      ansible.builtin.copy:
+        dest: /home/ansible-worker/www/index.html
+        src: index.html
+        owner: ansible-worker
+        group: ansible-worker
+
+    - name: copy nginx conf
+      become: yes
+      ansible.builtin.copy:
+        dest: /etc/nginx/sites-available/ansible.iphilka.ru.conf
+        src: ansible.iphilka.ru.conf
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: enable site
+      become: yes
+      file:
+        src: /etc/nginx/sites-available/ansible.iphilka.ru.conf
+        dest: /etc/nginx/sites-enabled/ansible.iphilka.ru.conf
+        state: link
+
+    - name: disable default site
+      become: yes
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: restart nginx
+      become: yes
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted
+
